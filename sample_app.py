@@ -57,9 +57,9 @@ def home():
         mens_exito = "CONEXIÓN EXITOSA A LA BASE DE DATOS" 
     except Exception as e:
         mens_error = f"Error al consultar los datos de la bd: {e}"
+        print(f"[ERROR DB] {mens_error}", flush=True)
 
     return render_template("index.html", lista_aprendices=registros, error=mens_error, exito=mens_exito)
-
 
 @sample.route("/registrar", methods=["POST"])
 def registrar():
