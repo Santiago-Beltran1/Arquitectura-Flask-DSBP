@@ -25,8 +25,10 @@ jobs:
           pip install bandit pytest
 
       - name: Pruebas SAST con Bandit
-        run: |
-          bandit -r . -f custom --msg-template "{abspath}:{line}: {test_id}: {msg}" || true
+        run: bandit -r . -s B101
+
+      - name: Ejecutar pruebas unitarias con Pytest
+        run: python -m pytest
 
   build-and-deploy:
     needs: test-and-security
@@ -42,12 +44,27 @@ jobs:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
-      - name: Construir y subir imagen backend
+      - name: Construir imagen backend
         uses: docker/build-push-action@v5
         with:
           context: .
-          push: true
+          push: false
+          load: true
+          no-cache: true
           tags: ${{ secrets.DOCKER_USERNAME }}/mi-api:latest
+
+      - name: Escanear contenedor con Trivy (Bloqueo Estricto)
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: '${{ secrets.DOCKER_USERNAME }}/mi-api:latest'
+          format: 'table'
+          exit-code: '1'
+          ignore-unfixed: true
+          vuln-type: 'os,library'
+          severity: 'CRITICAL,HIGH'
+
+      - name: Subir imagen backend a Docker Hub
+        run: docker push ${{ secrets.DOCKER_USERNAME }}/mi-api:latest
 
       - name: Desplegar en servidor Oracle Cloud
         uses: appleboy/ssh-action@v1.0.3
