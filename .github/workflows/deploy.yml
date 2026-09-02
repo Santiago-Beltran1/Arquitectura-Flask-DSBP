@@ -52,20 +52,6 @@ jobs:
           no-cache: true
           tags: santiagob084/mi-api:latest
 
-      - name: Construir y subir imagen nginx
-        uses: docker/build-push-action@v5
-        with:
-          context: ./nginx
-          push: true
-          tags: santiagob084/mi-nginx:latest
-
-      - name: Construir y subir imagen frontend
-        uses: docker/build-push-action@v5
-        with:
-          context: ./frontend
-          push: true
-          tags: santiagob084/mi-frontend:latest
-
       - name: Escanear contenedor con Trivy
         uses: aquasecurity/trivy-action@master
         with:
