@@ -1,0 +1,92 @@
+version: '3.8'
+
+services:
+  proxy-manager:
+    image: 'jc21/nginx-proxy-manager:latest'
+    container_name: proxy-manager
+    restart: always
+    ports: 
+      - "80:80"     # HTTP general y renovaciones Let's Encrypt
+      - "8082:81"   # Panel de administración NPM
+      - "443:443"   # HTTPS general
+    volumes:
+      - ./npm_data:/data
+      - ./npm_letsencrypt:/etc/letsencrypt
+    networks:
+      - red_proyecto
+
+  db:
+    image: mysql:8.0
+    container_name: servidor-bd-ejemplo
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
+      MYSQL_DATABASE: ${DB_NAME}
+      MYSQL_USER: ${DB_USER}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+    ports:
+      - "3307:3306" # Expuesto en el 3307 para la prueba de monitoreo TCP
+    volumes:
+      - db_data:/var/lib/mysql
+    networks:
+      - red_proyecto
+
+  backend:
+    build: .
+    container_name: flask_web
+    restart: always
+    environment:
+      - DB_HOST=db
+      - DB_USER=${DB_USER}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - DB_NAME=${DB_NAME}
+    depends_on:
+      - db
+    networks:
+      - red_proyecto
+
+  nginx:
+    image: santiagob084/mi-nginx:latest
+    container_name: proxy_nginx
+    restart: always
+    depends_on:
+      - backend
+    networks:
+      - red_proyecto
+
+  frontend:
+    image: santiagob084/mi-frontend:latest
+    container_name: app_frontend
+    restart: always
+    networks:
+      - red_proyecto
+
+  uptime-kuma:
+    image: louislam/uptime-kuma:1
+    container_name: uptime-kuma
+    restart: always
+    ports:
+      - "3002:3001" # Cambiado a puerto 3002
+    volumes:
+      - uptime-kuma-data:/app/data
+    networks:
+      - red_proyecto
+
+  dozzle:
+    image: amir20/dozzle:latest
+    container_name: dozzle
+    restart: always
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    ports:
+      - "9999:8080" # Cambiado a puerto 9999
+    networks:
+      - red_proyecto
+
+volumes:
+  db_data:
+  uptime-kuma-data:
+
+networks:
+  red_proyecto:
+    driver: bridge
