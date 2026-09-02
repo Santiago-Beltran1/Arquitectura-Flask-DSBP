@@ -9,7 +9,7 @@ app = sample
 conf_db = {
     "host": os.environ.get("DB_HOST", "db"),
     "user": os.environ.get("DB_USER", "appuser"),
-    "password": "apppassword123",
+    "password": os.environ.get("DB_PASSWORD", ""),
     "database": os.environ.get("DB_NAME", "flask_db"),
     "port": int(os.environ.get("DB_PORT", 3306))
 }
