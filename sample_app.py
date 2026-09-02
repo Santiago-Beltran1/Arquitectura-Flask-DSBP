@@ -6,12 +6,11 @@ import time
 sample = Flask(__name__)
 app = sample
 
-# Configuración segura: se leen credenciales desde el entorno sin contraseñas hardcodeadas
+
 conf_db = {
     "host": os.environ.get("DB_HOST", "db"),
-    "user": os.environ.get("DB_USER", "root"),
-    "password": os.environ.get("DB_PASSWORD", ""),  # Sin variables hardcodeadas (Solución Bandit B105)
-    "database": os.environ.get("DB_NAME", "adso_db"),
+    "user": os.environ.get("DB_USER", "appuser"),
+    "password": "rootpassword_super_secreta123", 
     "port": int(os.environ.get("DB_PORT", 3306))
 }
 
