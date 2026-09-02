@@ -6,11 +6,11 @@ import time
 sample = Flask(__name__)
 app = sample
 
-
 conf_db = {
     "host": os.environ.get("DB_HOST", "db"),
     "user": os.environ.get("DB_USER", "appuser"),
-    "password": "rootpassword_super_secreta123", 
+    "password": os.environ.get("DB_PASSWORD", ""),
+    "database": os.environ.get("DB_NAME", "flask_db"),
     "port": int(os.environ.get("DB_PORT", 3306))
 }
 
@@ -44,7 +44,6 @@ in_bd()
 
 @sample.route("/")
 def home():
-    # Solución Pytest: Se eliminó el jsonify con 500 forzado y se restaura la vista
     registros = []
     mens_error = None
     mens_exito = None
@@ -83,6 +82,5 @@ def registrar():
     return redirect("/") 
 
 if __name__ == "__main__":
-    # Solución Bandit: Se evalúa FLASK_DEBUG desde entorno (B201) y se agrega # nosec para el bind en Docker (B104)
     modo_debug = os.getenv("FLASK_DEBUG", "False").lower() == "true"
-    sample.run(host='0.0.0.0', port=5050, debug=modo_debug)  # nosec B104
+    sample.run(host='0.0.0.0', port=5000, debug=modo_debug)
