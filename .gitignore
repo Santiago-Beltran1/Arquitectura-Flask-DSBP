@@ -1,0 +1,23 @@
+# Archivos de Entorno y Secretos
+.env
+*.env
+*.pem
+*.key
+
+# Entornos Virtuales y Cache de Python
+venv/
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Datos Persistentes de Docker y Volúmenes Locales
+db_data/
+npm_data/
+npm_letsencrypt/
+uptime-kuma-data/
+
+# IDEs y Configuración del Sistema
+.vscode/
+.idea/
+.DS_Store
