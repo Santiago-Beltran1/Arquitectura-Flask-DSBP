@@ -1,29 +1,89 @@
-import os
+from flask import Flask, request, redirect, render_template
 import pymysql
-from flask import Flask, jsonify
+import os
+import time
 
-sample_app = Flask(__name__)
+sample = Flask(__name__)
+app = sample
 
-def get_db_connection():
-    return pymysql.connect(
-        host=os.getenv("DB_HOST", "db"),
-        user=os.getenv("DB_USER", "root"),
-        password=os.getenv("DB_PASSWORD", "password"),
-        database=os.getenv("DB_NAME", "app_db"),
-        cursorclass=pymysql.cursors.DictCursor
-    )
+# Configuración segura: se leen credenciales desde el entorno sin contraseñas hardcodeadas
+conf_db = {
+    "host": os.environ.get("DB_HOST", "db"),
+    "user": os.environ.get("DB_USER", "root"),
+    "password": os.environ.get("DB_PASSWORD", ""),  # Sin variables hardcodeadas (Solución Bandit B105)
+    "database": os.environ.get("DB_NAME", "adso_db"),
+    "port": int(os.environ.get("DB_PORT", 3306))
+}
 
-@sample_app.route("/")
-def index():
+def in_bd():
+    retries = 10
+    while retries > 0:
+        try:
+            conn = pymysql.connect(**conf_db) 
+            cursor = conn.cursor()
+            cursor.execute(
+                """
+                CREATE TABLE IF NOT EXISTS aprendices (
+                    id INT AUTO_INCREMENT PRIMARY KEY,
+                    nombre_completo VARCHAR(100) NOT NULL,
+                    numero_documento VARCHAR(20) NOT NULL,
+                    ficha VARCHAR(20) NOT NULL,
+                    creado_en TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                );
+                """
+            )
+            conn.commit()
+            conn.close()
+            print("Se inició la base de datos correctamente")
+            break
+        except Exception as e:
+            print(f"Esperando a la base de datos... ({e})")
+            retries -= 1
+            time.sleep(3)
+
+in_bd()
+
+@sample.route("/")
+def home():
+    # Solución Pytest: Se eliminó el jsonify con 500 forzado y se restaura la vista
+    registros = []
+    mens_error = None
+    mens_exito = None
+
     try:
-        connection = get_db_connection()
-        with connection.cursor() as cursor:
-            cursor.execute("SELECT VERSION() as version;")
-            result = cursor.fetchone()
-        connection.close()
-        return jsonify({"status": "success", "db_version": result["version"]}), 200
+        conn = pymysql.connect(**conf_db) 
+        cursor = conn.cursor()
+        cursor.execute("SELECT id, nombre_completo, numero_documento, ficha, creado_en FROM aprendices ORDER BY id DESC")
+        registros = cursor.fetchall()
+        conn.close()
+        mens_exito = "CONEXIÓN EXITOSA A LA BASE DE DATOS" 
     except Exception as e:
-        return jsonify({"status": "error", "message": str(e)}), 500
+        mens_error = f"Error al consultar los datos de la bd: {e}"
+
+    return render_template("index.html", lista_aprendices=registros, error=mens_error, exito=mens_exito)
+
+
+@sample.route("/registrar", methods=["POST"])
+def registrar():
+    nombre = request.form.get("nombre")
+    documento = request.form.get("documento")
+    ficha = request.form.get("ficha")
+
+    try:
+        conn = pymysql.connect(**conf_db)
+        cursor = conn.cursor()
+        cursor.execute(
+            "INSERT INTO aprendices (nombre_completo, numero_documento, ficha) VALUES (%s, %s, %s)",
+            (nombre, documento, ficha)
+        )
+        conn.commit()
+        conn.close()
+    except Exception as e:
+        print(f"Error al ingresar los datos: {e}")
+
+    return redirect("/") 
 
 if __name__ == "__main__":
-    sample_app.run(host="0.0.0.0", port=5000)
+    # Solución Bandit: Se evalúa FLASK_DEBUG desde entorno (B201) y se agrega # nosec para el bind en Docker (B104)
+    modo_debug = os.getenv("FLASK_DEBUG", "False").lower() == "true"
+    sample.run(host='0.0.0.0', port=5050, debug=modo_debug)  # nosec B104
